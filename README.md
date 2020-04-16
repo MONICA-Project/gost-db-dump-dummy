@@ -1,47 +1,43 @@
-# Monica Foobar
-<!-- Short description of the project. -->
+# Monica gost-db-dump-dummy
+ application of gost-db-dump for huge observation table (https://github.com/MONICA-Project/gost-db-dump)
 
-Foobar is not a real software. The name is used here as placeholder for a described software. This readme is meant for describing an application but can be adapted to describe a software library by changing `Deployment` section to `Usage`. 
+`dump_gost_db.sh` has been changed to dump the all db except v1.observation, dump the schema of v1.observation, and save some parts according a query
 
-<!-- A teaser figure may be added here. It is best to keep the figure small (<500KB) and in the same repo -->
+This is a simple docker-compose setup to dump a GOST database from the MONICA cloud and deploy it locally on your machine. Check first if the database you want to export has a manageable size:
 
-## Getting Started
-<!-- Instruction to make the project up and running. -->
-
-The project documentation is available on the [Wiki](https://github.com/MONICA-Project/template/wiki).
-
-## Deployment
-<!-- Deployment/Installation instructions. If this is software library, change this section to "Usage" and give usage examples -->
-
-### Docker
-To run the latest version of foobar:
-```bash
-docker run -p 8080:80 foobar
+```sql
+SELECT pg_size_pretty( pg_database_size('<db_name>') );
 ```
 
-## Development
-<!-- Developer instructions. -->
-
-### Prerequisite
-This projects depends on xyz. Installation instructions are available [here](https://xyz.com)
-
-On Debian:
-```bash
-apt install xyz
-```
-
-### Test
-Use tests.sh to run unit tests:
-```bash
-sh tests.sh
-```
-
-### Build
+Then copy `docker-compose-example.yml` to `docker-compose.yml`, enter the necessary environment variables for your use case and run
 
 ```bash
-g++ -o app app.cpp
+docker-compose up gost-db-dump
 ```
 
+This may take a few minutes and will create a dump of the database to file `./dumps/gost.sql`. Your Postgres user needs to have the necessary permissions.
+
+To import the database to a local deployment run
+
+```bash
+docker-compose up -d gost-db
+```
+
+This will run the script `./docker-entrypoint-initdb.d/import.sh` that imports the dump file `./dumps/gost.sql` created in the first step into a fresh database named `gost`. Note that this will only run as long as your Docker volume `pgdata` is empty. So if the process fails at some point and you want to repeat the import you might have to remove the volume before, e.g.:
+
+```bash
+docker volume rm gostdbdump_pgdata
+```
+
+After the import was successful, you can start a Gost server instance with a Mosquitto and the Gost Dashboard:
+
+```bash
+docker-compose up -d gost-dashboard
+```
+
+Then browse your OGC entities at http://localhost:8080/v1.0.
+
+This or a similar setup should be easy to combine with https://github.com/MONICA-Project/observation-replayer.
 ## Contributing
 Contributions are welcome. 
 
@@ -50,11 +46,3 @@ Please fork, make your changes, and submit a pull request. For major changes, pl
 ## Affiliation
 ![MONICA](https://github.com/MONICA-Project/template/raw/master/monica.png)  
 This work is supported by the European Commission through the [MONICA H2020 PROJECT](https://www.monica-project.eu) under grant agreement No 732350.
-
-> # Notes
->
-> * The above templace is adapted from [[1](https://github.com/cpswarm/template), [2](https://www.makeareadme.com), [3](https://gist.github.com/PurpleBooth/109311bb0361f32d87a2), [4](https://github.com/dbader/readme-template)].
-> * Versioning: Use [SemVer](http://semver.org/) and tag the repository with full version string. E.g. `v1.0.0`
-> * License: Provide a LICENSE file at the top level of the source tree. You can use Github to [add a license](https://help.github.com/en/articles/adding-a-license-to-a-repository). This template repository has an [Apache 2.0](LICENSE) file.
->
-> *Remove this section from the actual readme.*
